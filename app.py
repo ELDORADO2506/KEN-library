@@ -156,9 +156,9 @@ def page_dashboard():
     st.title("KEN Library — Dashboard (tables only)")
 
     # KPIs
-    total_books  = fetch_df("SELECT COUNT(*) AS c FROM books")[\"c\"][0]
-    issued_now   = fetch_df("SELECT COUNT(*) AS c FROM transactions WHERE return_date IS NULL")[\"c\"][0]
-    total_issues = fetch_df("SELECT COUNT(*) AS c FROM transactions")[\"c\"][0]
+    total_books  = fetch_df("SELECT COUNT(*) AS c FROM books")["c"][0]
+    issued_now   = fetch_df("SELECT COUNT(*) AS c FROM transactions WHERE return_date IS NULL")["c"][0]
+    total_issues = fetch_df("SELECT COUNT(*) AS c FROM transactions")["c"][0]
 
     c1, c2, c3 = st.columns(3)
     c1.metric("Total Books", int(total_books))
