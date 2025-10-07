@@ -86,7 +86,7 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 book_id     INTEGER,
                 member_id   INTEGER,
-                issue_date  TEXT DEFAULT DATE('now'),
+                issue_date  TEXT DEFAULT CURRENT_TIMESTAMP,
                 due_date    TEXT,
                 return_date TEXT,
                 FOREIGN KEY(book_id) REFERENCES books(id) ON DELETE CASCADE,
