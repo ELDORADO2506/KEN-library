@@ -46,7 +46,7 @@ def init_db():
         cur = con.cursor()
 
         # books
-        cur.execute(\"\"\"
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS books(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT,
@@ -56,32 +56,32 @@ def init_db():
                 tags TEXT,
                 notes TEXT
             )
-        \"\"\")
+        """)
 
         # members
-        cur.execute(\"\"\"
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS members(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT,
                 phone TEXT,
                 email TEXT
             )
-        \"\"\")
+        """)
 
         # locations
-        cur.execute(\"\"\"
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS locations(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE,
                 description TEXT
             )
-        \"\"\")
+        """)
 
         # ensure no conflicting object named "transactions"
         _ensure_is_table("transactions")
 
         # issue / return by BOOK (no copies)
-        cur.execute(\"\"\"
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS transactions(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 book_id     INTEGER,
@@ -92,7 +92,7 @@ def init_db():
                 FOREIGN KEY(book_id) REFERENCES books(id) ON DELETE CASCADE,
                 FOREIGN KEY(member_id) REFERENCES members(id) ON DELETE CASCADE
             )
-        \"\"\")
+        """)
 
         # helpful indexes
         cur.execute("CREATE INDEX IF NOT EXISTS ix_trans_open ON transactions(book_id) WHERE return_date IS NULL")
@@ -101,16 +101,16 @@ def init_db():
         con.commit()
 
 def ensure_default_locations(n: int = 45):
-    \"\"\"Create Compartment 1..n if they don't exist (optional helper).\"\"\"
+    """Create Compartment 1..n if they don't exist (optional helper)."""
     with get_conn() as con:
         cur = con.cursor()
-        cur.execute(\"\"\"
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS locations(
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE,
                 description TEXT
             )
-        \"\"\")
+        """)
         for i in range(1, n + 1):
             cur.execute(
                 "INSERT OR IGNORE INTO locations(name, description) VALUES(?, ?)",
@@ -167,7 +167,7 @@ def page_dashboard():
 
     # Genres table
     st.subheader("Genres (table)")
-    genre_tbl = fetch_df(\"\"\"
+    genre_tbl = fetch_df("""
         SELECT
           COALESCE(b.genre,'(Uncategorized)') AS Genre,
           COUNT(*) AS Titles,
@@ -178,7 +178,7 @@ def page_dashboard():
         FROM books b
         GROUP BY b.genre
         ORDER BY Titles DESC, Genre
-    \"\"\")
+    """)
     st.dataframe(genre_tbl, use_container_width=True)
 
     # Click a genre to see its books
@@ -187,20 +187,20 @@ def page_dashboard():
     pick = st.selectbox("Genre", genres, index=0)
 
     if pick == "(All)":
-        df = fetch_df(\"\"\"
+        df = fetch_df("""
             SELECT id, title AS Title, author AS Author,
                    COALESCE(genre,'(Uncategorized)') AS Genre
             FROM books
             ORDER BY title
-        \"\"\")
+        """)
     else:
-        df = fetch_df(\"\"\"
+        df = fetch_df("""
             SELECT id, title AS Title, author AS Author,
                    COALESCE(genre,'(Uncategorized)') AS Genre
             FROM books
             WHERE COALESCE(genre,'(Uncategorized)') = ?
             ORDER BY title
-        \"\"\", (pick,))
+        """, (pick,))
     st.dataframe(df, use_container_width=True)
 
 def page_issue_return():
@@ -225,7 +225,7 @@ def page_issue_return():
 
     # Open issues table
     st.subheader("Open Issues")
-    open_df = fetch_df(\"\"\"
+    open_df = fetch_df("""
         SELECT t.id AS Txn_ID,
                b.title AS Title,
                m.name  AS Member,
@@ -236,7 +236,7 @@ def page_issue_return():
         JOIN members m ON m.id = t.member_id
         WHERE t.return_date IS NULL
         ORDER BY t.issue_date DESC
-    \"\"\")
+    """)
     st.dataframe(open_df, use_container_width=True)
 
     if not open_df.empty:
@@ -249,7 +249,7 @@ def page_issue_return():
 
     # History
     st.subheader("Recent Issue/Return History")
-    hist_df = fetch_df(\"\"\"
+    hist_df = fetch_df("""
         SELECT b.title AS Title,
                m.name  AS Member,
                t.issue_date AS Issued_On,
@@ -260,7 +260,7 @@ def page_issue_return():
         JOIN members m ON m.id = t.member_id
         ORDER BY t.id DESC
         LIMIT 200
-    \"\"\")
+    """)
     st.dataframe(hist_df, use_container_width=True)
 
 def page_books():
@@ -271,17 +271,17 @@ def page_books():
         genre = st.text_input("Genre")
         default_loc = select_location("Default Location", allow_empty=True)
         if st.button("Add Book", type="primary") and title.strip():
-            run_sql(\"\"\"
+            run_sql("""
                 INSERT INTO books(title, author, genre, default_location)
                 VALUES(?, ?, ?, ?)
-            \"\"\", (title.strip(), author.strip(), genre.strip(), default_loc))
+            """, (title.strip(), author.strip(), genre.strip(), default_loc))
             st.success("Book added.")
 
-    df = fetch_df(\"\"\"
+    df = fetch_df("""
         SELECT id, title, author, genre, default_location
         FROM books
         ORDER BY title
-    \"\"\")
+    """)
     st.dataframe(df, use_container_width=True)
 
 def page_members():
@@ -342,10 +342,10 @@ def page_import_export():
             with get_conn() as con:
                 cur = con.cursor()
                 cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_books_title_author ON books(title, author)")
-                cur.executemany(\"\"\"
+                cur.executemany("""
                     INSERT OR IGNORE INTO books(title, author, genre, default_location)
                     VALUES(?, ?, ?, ?)
-                \"\"\", rows)
+                """, rows)
                 con.commit()
             st.success(f"Imported {len(rows)} books (existing titles skipped).")
 
@@ -370,9 +370,9 @@ def page_import_export():
                 ))
             with get_conn() as con:
                 cur = con.cursor()
-                cur.executemany(\"\"\"
+                cur.executemany("""
                     INSERT INTO members(name, phone, email) VALUES(?, ?, ?)
-                \"\"\", rows)
+                """, rows)
                 con.commit()
             st.success(f"Imported {len(rows)} members.")
 
@@ -396,9 +396,9 @@ def page_import_export():
                 ))
             with get_conn() as con:
                 cur = con.cursor()
-                cur.executemany(\"\"\"
+                cur.executemany("""
                     INSERT OR IGNORE INTO locations(name, description) VALUES(?, ?)
-                \"\"\", rows)
+                """, rows)
                 con.commit()
             st.success(f"Imported {len(rows)} locations (duplicates ignored).")
 
